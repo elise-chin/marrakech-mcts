@@ -1,10 +1,13 @@
 import numpy as np
 
+#Orientations of the pawn
 NORTH = (0, 1)
 SOUTH = (0, -1)
 EAST = (1, 0)
 WEST = (-1, 0)
 
+
+#U turns (demi tour) of the pawn
 u_turn = {
     NORTH: SOUTH,
     SOUTH: NORTH,
@@ -15,17 +18,24 @@ u_turn = {
 class Board(object):
     def __init__(self, size=7):
         self.board = np.zeros((size, size))
-        self.pawn = Pawn()
+        self.pawn = Pawn() #initialized in (3,3)
         pass
 
     def legal_moves(self):
-        # Seulement les legal orientations d'Assam non ?
+        # Only legal orientations of the pawn ?
+        
+        #Also where we can place the rug ?
         return self.pawn.legal_orientations()
 
     def score(self):
+        #Sum of the coins
+        #+ number of squares of the boards of the player's colors
+        #We can think the score as points(player1) - points(player2)
+        #Such that if it's positive player 1 wins, if negative player 2 wins   
         pass
 
     def terminal(self):
+        #If there are no more rugs
         pass
 
     def play(self):
@@ -41,14 +51,25 @@ class Board(object):
         """Play a random game from the current state.
         Returns the result of the random game."""
         while(True):
-            
+            #The game is over
             if self.terminal():
-                return self.score()
+                #victory for player 2
+                if self.score() < 0:
+                    return -1
+                #victory for player 1
+                elif self.score() > 0:
+                    return 1
+                #equality
+                else:
+                    return 0
+            
+            #Non terminal : rugs are remaining
         pass
 
 
 class Pawn(object):
     def __init__(self):
+        #The pawn start at the center of the board
         self.x = 3
         self.y = 3
         self.orientation = NORTH
@@ -61,13 +82,16 @@ class Pawn(object):
         self.orientation = orientation
 
     def legal_orientations(self):
+        #The pawn cannot make a u turn
         orientations = [NORTH, SOUTH, EAST, WEST]
         orientations.remove(u_turn[self.orientation])
         return orientations
 
     def reorient(self, new_orientation):
+        #What's the difference between this and set_orientation ?
         if new_orientation in self.legal_orientations():
             self.orientation = new_orientation
+            #What if it is not legal ? I don't understand this part
 
     def move(self, new_orientation, dice):
         # 1. Position the pawn
@@ -97,14 +121,17 @@ class Pawn(object):
                 self.x = 0
 
             # Place the pawn after it has moved out from the board 
-            self.move_in_board()
-
+            #It counts as a step
+            self.move_in_board() #modifies position and orientation
+            steps_left = steps_left - 1
+            
             # Move the pawn according its new orientation and the number of steps left
             self.x = self.x + self.orientation[0] * steps_left 
             self.y = self.y + self.orientation[1] * steps_left
 
     def move_in_board(self):
         # Bottom left corner (0,0)
+        #to read again by mathilde
         if (self.x, self.y) == (0,0) and self.orientation == SOUTH:
             self.orientation = EAST
         elif (self.x, self.y) == (0,0) and self.orientation == WEST:
@@ -137,12 +164,18 @@ class Player(object):
     def __init__(self, id):
         self.id = id
         #self.rugs : liste de tapis, si deux joueurs, deux couleurs
+        #or rugs1_left = 15 and rugs2_left = 15 ? 
+        #Or explicit list of rugs, idk
+        #We need to manage the alternation of colors
         self.coins = 30
     
     def pay(self, amount, opponent_player):
+        #I think that we should just focus on the 2 players game
+        #Is the player doesn't have enough money
         if self.coins - amount < 0:
             opponent_player.coins += self.coins
             self.coins = 0
+        #If the player can pay
         else:
             self.coins -= amount
             opponent_player.coins += amount
