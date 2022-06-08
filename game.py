@@ -1,4 +1,15 @@
 import numpy as np
+from itertools import cycle
+
+#Colors of the rugs
+RED = 0 #player 1
+BLUE = 1 #player 2
+PINK = 2 #player 1
+GREEN = 3 #player 2
+
+colors = [RED, BLUE, PINK, GREEN]
+color_cycle = cycle(colors)
+#next(color_cycle) gives the next color to play
 
 #Orientations of the pawn
 NORTH = (0, 1)
@@ -19,13 +30,17 @@ class Board(object):
     def __init__(self, size=7):
         self.board = np.zeros((size, size))
         self.pawn = Pawn() #initialized in (3,3)
-        pass
+        self.turn = RED #start with first color of first player
 
-    def legal_moves(self):
-        # Only legal orientations of the pawn ?
+    def legal_moves(self, dice, assam):
+        moves = []
+        # faire la liste de tous les moves possibles
+        for orientation in [NORTH, SOUTH, EAST, WEST]:
+            for
+        # pour chacun, verifier s'il est légal
         
-        #Also where we can place the rug ?
-        return self.pawn.legal_orientations()
+        #s'il est légal on l'ajoute à la liste renvoyée
+        return moves
 
     def score(self):
         #Sum of the coins
@@ -64,7 +79,31 @@ class Board(object):
                     return 0
             
             #Non terminal : rugs are remaining
+            #We play another move
         pass
+    
+    
+class Move(object):
+    def __init__(self, color, old_orientation, new_orientation, x1, y1, x2, y2, dice, assam):
+        self.color = color #couleur du tapis à poser
+        self.old_orientation = old_orientation
+        self.new_orientation = new_orientation
+        self.x1 = x1 #coordonnées des 2 cases couvertes par le tapis
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
+        dice = dice
+        
+    def valid(self, board):
+        #orientation valide si pas de demi tour
+        
+        #placement de tapis valide si bien autour du pion (mais pas derrière)
+        
+        #placement de tapis valide si le tapis ne sort pas du plateau
+        
+        #placement de tapis valide si le tapis ne recouvre pas entièrement un autre tapis
+        
+        ...
 
 
 class Pawn(object):
@@ -167,6 +206,7 @@ class Player(object):
         #or rugs1_left = 15 and rugs2_left = 15 ? 
         #Or explicit list of rugs, idk
         #We need to manage the alternation of colors
+        
         self.coins = 30
     
     def pay(self, amount, opponent_player):
