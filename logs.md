@@ -24,3 +24,4 @@ __TODO__
 
 - [ ] Test `Pawn.move()`
 - [ ] Test `Move.valid()`
+- [ ] How to deal with the dice?
