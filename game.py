@@ -17,6 +17,8 @@ SOUTH = (0, -1)
 EAST = (1, 0)
 WEST = (-1, 0)
 
+dic_orientations = {NORTH : "north", SOUTH : "south", EAST : "east", WEST : "west"}
+
 
 #U turns (demi tour) of the pawn
 u_turn = {
@@ -26,19 +28,42 @@ u_turn = {
     WEST: EAST,
 }
 
+def adjacent_coord(coord):
+    """
+    returns all the coordinates of adjacentes cases of coord
+    """
+    left = (coord[0]-1, coord[1])
+    right = (coord[0]+1, coord[1])
+    up = (coord[0]-1, coord[1]+1)
+    down = (coord[0]-1, coord[1]-1)
+    L = [left, right, up, down]
+    return L
+
 class Board(object):
     def __init__(self, size=7):
         self.board = np.zeros((size, size))
         self.pawn = Pawn() #initialized in (3,3)
         self.turn = RED #start with first color of first player
+        
+    #FAIRE UNE FONCTION DISPLAY ?
 
-    def legal_moves(self, dice, assam):
+    def legalMoves(self, dice):
+        """
+        A reverifier et remodifier eventuellemnt !
+        j'ai juste fait pour voir l'idee globae mais c'est surement tres ameliorable
+        """
         moves = []
         # faire la liste de tous les moves possibles
         for orientation in [NORTH, SOUTH, EAST, WEST]:
-            for
-        # pour chacun, verifier s'il est légal
-        
+            #pour chaque case autour de Assam
+            for case in adjacent_coord((pawn.x, pawn.y)):
+                #pour chaque case autour de ces cases:
+                for adj in adjacent_coord(case):
+                    rug = Rug(id, self.turn, (case,adj))
+                    m = Move(self.pawn, orientation, rug, dice) #a verifier je me melange un peu avace les classes
+                    # pour chacun, verifier s'il est légal
+                    if m.valid(self):
+                        moves.append(m)
         #s'il est légal on l'ajoute à la liste renvoyée
         return moves
 
@@ -53,7 +78,7 @@ class Board(object):
         #If there are no more rugs
         pass
 
-    def play(self):
+    def play(self, move):
         # 1. Position the pawn
 
         # 2. Throw the dice
@@ -66,7 +91,8 @@ class Board(object):
         """Play a random game from the current state.
         Returns the result of the random game."""
         while(True):
-            #The game is over
+            moves = self.legalMoves()
+            #if The game is over
             if self.terminal():
                 #victory for player 2
                 if self.score() < 0:
@@ -79,20 +105,28 @@ class Board(object):
                     return 0
             
             #Non terminal : rugs are remaining
+            n = random.randint(0, len(moves)-1)
             #We play another move
+            self.play(moves[n])
         pass
     
     
 class Move(object):
-    def __init__(self, color, old_orientation, new_orientation, x1, y1, x2, y2, dice, assam):
-        self.color = color #couleur du tapis à poser
-        self.old_orientation = old_orientation
+    def __init__(self, pawn, new_orientation, rug, dice):
+        self.pawn = pawn
         self.new_orientation = new_orientation
-        self.x1 = x1 #coordonnées des 2 cases couvertes par le tapis
-        self.y1 = y1
-        self.x2 = x2
-        self.y2 = y2
+        self.rug = rug
         dice = dice
+        
+    def __str__(self):
+        de = f'The dice indicates {dice}.\n'
+        if pawn.orientation == self.new_orientation:
+            assam = f'The pawn stays in his orientation ({dic_orientations[pawn.orientation]}).\n'
+        else:
+            assam = f'The pawn is reoriented from {dic_orientations[pawn.orientation]} to {dic_orientations[self.new.orientation]}.\n'
+        tapis = f"A rug of color {rug.color} is placed at {rug.coord}."
+        result = de + assam + tapis
+        return result
         
     def valid(self, board):
         #orientation valide si pas de demi tour
@@ -222,6 +256,7 @@ class Player(object):
             
 
 class Rug(object):
-    def __init__(self, id, color):
-        self.id = id
+    def __init__(self, id, color, coords):
+        self.id = id #gerer les incrementations
         self.color = color
+        self.coords = coords #pas sure ?
