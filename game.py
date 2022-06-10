@@ -245,7 +245,7 @@ class Move(object):
             # on its left (west), in front (north), or on its right (east)
             valid_orientations = [NORTH, SOUTH, EAST, WEST]
             valid_orientations.remove(u_turn[self.new_orientation])
-            valid_adj_squares = [(self.pawn.x + orientation[0], self.pawn.y + orientation[1]) for orientation in valid_orientations]
+            valid_adj_squares = [(self.pawn.position.x + orientation[0], self.pawn.position.y + orientation[1]) for orientation in valid_orientations]
             rug_square1_coord = self.rug.coords[0]
             if rug_square1_coord in valid_adj_squares:
                 return True
