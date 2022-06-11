@@ -136,11 +136,11 @@ class Pawn(object):
 
         # 2. Move the pawn according to the new orientation and the dice's result
 
-        #   square 1: pawn does not go out from the board
+        #   Case 1: pawn does not go out from the board
         self.position.x = self.position.x + self.orientation[0] * dice 
         self.position.y = self.position.y + self.orientation[1] * dice 
 
-        #   square 2: pawn goes out from the board (implementation brute-force)
+        #   Case 2: pawn goes out from the board (implementation brute-force)
         if self.position.is_out_of_board(board_limit=6): 
             # Count the number of steps left after moving out of the board
             # Place the pawn at the limit of the board
@@ -173,6 +173,11 @@ class Pawn(object):
             self.orientation = EAST
         elif (self.position.x, self.position.y) == (0,0) and self.orientation == WEST:
             self.orientation = NORTH
+        # Top right corner (6,6)
+        elif (self.position.x, self.position.y) == (6,6) and self.orientation == EAST:
+            self.orientation = SOUTH
+        elif (self.position.x, self.position.y) == (6,6) and self.orientation == NORTH:
+            self.orientation = WEST
         # Bottom side (y = 0)
         elif self.orientation == SOUTH:
             self.position.x = self.position.x + 1 if self.position.x % 2 == 1 else self.position.x - 1
@@ -181,18 +186,13 @@ class Pawn(object):
         elif self.orientation == EAST:
             self.position.y = self.position.y + 1 if self.position.y % 2 == 0 else self.position.y - 1
             self.orientation = WEST
-        # Top right corner (6,6)
-        elif (self.position.x, self.position.y) == (6,6) and self.orientation == EAST:
-            self.orientation = SOUTH
-        elif (self.position.x, self.position.y) == (6,6) and self.orientation == NORTH:
-            self.orientation = WEST
         # Top side (y = 6)
         elif self.orientation == NORTH:
-            self.position.x = self.position.x + 1 if self.position.x % 2 == 1 else self.position.x - 1
+            self.position.x = self.position.x + 1 if self.position.x % 2 == 0 else self.position.x - 1
             self.orientation = SOUTH
         # Left side (x = 0)
         elif self.orientation == WEST:
-            self.position.y = self.position.y + 1 if self.position.y % 2 == 0 else self.position.y - 1
+            self.position.y = self.position.y + 1 if self.position.y % 2 == 1 else self.position.y - 1
             self.orientation = EAST
   
 class Player(object):
@@ -296,7 +296,7 @@ class Board(object):
         # faire la liste de tous les moves possibles
         for orientation in [NORTH, SOUTH, EAST, WEST]:
             #pour chaque case autour de Assam
-            for sq1_coord in adjacent_coord((self.pawn.x, self.pawn.y)):
+            for sq1_coord in adjacent_coord((self.pawn.position.x, self.pawn.position.y)):
                 #pour chaque case autour de ces cases:
                 for sq2_coord in adjacent_coord(sq2_coord):
                     rug = Rug(self.turn, sq1_coord, sq2_coord)

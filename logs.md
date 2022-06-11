@@ -22,6 +22,6 @@ In `game.py`:
   
 __TODO__
 
-- [ ] Test `Pawn.move()`
+- [x] Test `Pawn.move()` --> 11/06/22
 - [ ] Test `Move.valid()`
 - [ ] How to deal with the dice?
