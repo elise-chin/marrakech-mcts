@@ -204,11 +204,7 @@ class Player(object):
     def __init__(self, id, colors):
         self.id = id
         self.colors = colors
-        #self.rugs : liste de tapis, si deux joueurs, deux couleurs
-        #or rugs1_left = 15 and rugs2_left = 15 ? 
-        #Or explicit list of rugs, idk
-        #We need to manage the alternation of colors
-        
+        self.rugs_left = 30
         self.coins = 30
     
     def pay(self, amount, opponent_player):
@@ -325,8 +321,10 @@ class Board(object):
         pass
 
     def terminal(self):
-        #If there are no more rugs
-        pass
+        for player in self.players:
+            if player.rugs_left != 0:
+                return False
+        return True
 
     def play(self, move):
         # 1. Orientate the pawn
@@ -335,6 +333,7 @@ class Board(object):
         # 2. Place a rug
         self.board[self.rug.sq1_pos.x, self.rug.sq1_pos.y] = np.array([self.rug.color, self.rug.id])
         self.board[self.rug.sq2_pos.x, self.rug.sq2_pos.y] = np.array([self.rug.color, self.rug.id])
+        self.current_player.rugs_left -= 1
 
     def playout(self):
         """Play a random game from the current state.
