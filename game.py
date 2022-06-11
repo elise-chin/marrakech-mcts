@@ -199,6 +199,29 @@ class Pawn(object):
         elif self.orientation == WEST:
             self.position.y = self.position.y + 1 if self.position.y % 2 == 1 else self.position.y - 1
             self.orientation = EAST
+
+    def get_nb_same_color_squares(self, board):
+        """Compute the number of adjacents squares of the same color
+        as the square's color on which the pawn is"""
+        counter = 0
+        pawn_x, pawn_y = self.position.get_coord()
+        pawn_color = board.get_color(pawn_x, pawn_y)
+
+        coords_to_check = adjacent_coord((pawn_x, pawn_y))
+        visited_coords = set()
+        while coords_to_check:
+            x, y = coords_to_check.pop(0)
+            visited_coords.add((x, y))
+            color = board.get_color(x, y)
+            if color == pawn_color:
+                counter += 1
+                adj_coords = adjacent_coord((x,y))
+                # Only append to coords_to_check not visited coords yet and of same color as the pawn
+                for coord in adj_coords:
+                    if coord not in visited_coords:
+                        coords_to_check.append(coord)
+        return counter
+
   
 class Player(object):
     def __init__(self, id, colors):
@@ -301,7 +324,11 @@ class Board(object):
     def throw_dice(self):
         dice = [1, 2, 2, 3, 3, 4]
         return random.choice(dice)
-        
+
+    def get_color(self, x, y):
+        """Get the color of the square (x,y)"""
+        return self.board[x,y][0]
+
     def legal_moves(self, dice):
         """
         A reverifier et remodifier eventuellemnt !
@@ -376,10 +403,10 @@ class Board(object):
 
             # Pay opponent
             # Pay only if the pawn is on an opponent color
-            current_square_color = self.board[self.pawn.position.x, self.pawn.position.y][0]
+            current_square_color = self.get_color(self.pawn.position.x, self.pawn.position.y)
             opponent_player_id = abs(self.current_player.id - 1)
             if current_square_color not in self.current_player.colors:
-                amount = 0 #### COMMENT LE NB DE CASES ADJ DE LA COULEUR OU SE TROUVE LE PION
+                amount = self.pawn.get_nb_same_color_squares()
                 self.current_player.pay(amount, self.players[opponent_player_id])
 
             # Change turn 
