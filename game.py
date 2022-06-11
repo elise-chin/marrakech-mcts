@@ -55,9 +55,19 @@ def adjacent_coord(coord):
     x, y = coord
     left = (x-1, y)
     right = (x+1, y)
-    up = (x-1, y+1)
-    down = (x-1, y-1)
+    up = (x, y+1)
+    down = (x, y-1)
     L = [left, right, up, down]
+
+    if x == 0:
+        L.remove(left)
+    if y == 0:
+        L.remove(down)
+    if x == 6:
+        L.remove(right)
+    if y == 6:
+        L.remove(up)
+
     return L
 
 ##################
@@ -72,6 +82,9 @@ class Position(object):
     def __str__(self):
         return f'({self.x},{self.y})'
 
+    def get_coord(self):
+        return self.x, self.y
+
     def is_out_of_board(self, board_limit):
         """Check if the position of coordinates (x,y) is outside the board.
         
@@ -83,6 +96,7 @@ class Position(object):
         if self.x < 0 or self.x > board_limit or self.y < 0 or self.y > board_limit:
             return True
         return False
+
 
 class Rug(object):
 
@@ -228,52 +242,49 @@ class Move(object):
         if self.pawn.orientation == self.new_orientation:
             assam = f'The pawn stays in his orientation ({orientations_int2str[self.pawn.orientation]}).\n'
         else:
-            assam = f'The pawn is reoriented from {orientations_int2str[self.pawn.orientation]} to {orientations_int2str[self.new.orientation]}.\n'
-        tapis = f"A rug of color {self.rug.color} is placed at {self.rug.coord}."
+            assam = f'The pawn is reoriented from {orientations_int2str[self.pawn.orientation]} to {orientations_int2str[self.new_orientation]}.\n'
+        tapis = f"A rug of color {colors_int2str[self.rug.color]} (id={self.rug.id}) is placed at ({self.rug.sq1_pos}, {self.rug.sq2_pos})."
         result = de + assam + tapis
         return result
         
+    def is_pawn_new_orientation_valid(self):
+        # It is valid if no u-turn
+        return self.new_orientation in self.pawn.legal_orientations()
+    
+    def is_rug_adjacent_to_pawn(self):
+        # Check if adjacent to pawn and also not on the pawn's position
+
+        # List of all valid coordinates around the pawn
+        x, y = self.pawn.position.x, self.pawn.position.y
+        init_valid_coord = adjacent_coord((x, y))
+        valid_coord = init_valid_coord.copy()
+        for coord in init_valid_coord:
+            valid_coord.extend(adjacent_coord(coord))
+        set_valid_coord = set(valid_coord)
+        set_valid_coord.remove((x, y))
+
+        # Check if the rug's both squares are in the set
+        if self.rug.sq1_pos.get_coord() and self.rug.sq2_pos.get_coord() in set_valid_coord:
+            return True
+        return False
+
+    def is_rug_covering_another_rug(self, board):
+        # Rug's new placement is valid if it doesn't cover another rug
+        # We need to check if the both squares are covered by the same rug (same color and same id)
+        sq1_color_and_id = board.board[self.rug.sq1_pos.x, self.rug.sq1_pos.y]
+        sq2_color_and_id = board.board[self.rug.sq2_pos.x, self.rug.sq2_pos.y]
+        print(sq1_color_and_id, sq2_color_and_id)
+        if (sq1_color_and_id == sq2_color_and_id).all():
+            return True
+        return False
+
     def valid(self, board):
 
-        def is_pawn_new_orientation_valid():
-            # It is valid if no u-turn
-            return self.new_orientation in self.pawn.legal_orientations()
-
-        def is_rug_placement_valid_according_to_pawn_orientation():
-            # It is valid when the rug is placed on the pawn's sides or in front, and not behind
-            # e.g. if the pawn is oriented to the north, then the rug can be placed 
-            # on its left (west), in front (north), or on its right (east)
-            valid_orientations = [NORTH, SOUTH, EAST, WEST]
-            valid_orientations.remove(u_turn[self.new_orientation])
-            valid_adj_squares = [(self.pawn.position.x + orientation[0], self.pawn.position.y + orientation[1]) for orientation in valid_orientations]
-            rug_square1_coord = self.rug.coords[0]
-            if rug_square1_coord in valid_adj_squares:
-                return True
+        if not self.is_pawn_new_orientation_valid():
             return False
-            
-        def is_rug_out_of_board():
-            # Rug's new placement is valid if it is not out of the board
-            board_limit = board.size - 1
-            if self.rug.sq1_pos.is_out_of_board(board_limit) or self.rug.sq2_pos.is_out_of_board(board_limit):
-                return True 
+        elif not self.is_rug_adjacent_to_pawn():
             return False
-
-        def is_rug_covering_another_rug():
-            # Rug's new placement is valid if it doesn't cover another rug
-            # We need to check if the both squares are covered by the same rug (same color and same id)
-            sq1_color_and_id = board.board[self.rug.sq1_pos.x, self.rug.sq1_pos.y]
-            sq2_color_and_id = board.board[self.rug.sq1_pos.x, self.rug.sq1_pos.y]
-            if sq1_color_and_id == sq2_color_and_id:
-                return True
-            return False
-
-        if not is_pawn_new_orientation_valid():
-            return False
-        elif not is_rug_placement_valid_according_to_pawn_orientation():
-            return False
-        elif is_rug_out_of_board():
-            return False
-        elif is_rug_covering_another_rug():
+        elif self.is_rug_covering_another_rug(board):
             return False
         return True
 
@@ -285,6 +296,7 @@ class Board(object):
         self.turn = RED # Start with first color of first player
         
     def __str__(self):
+        #print(self.board)
         pass
         
     def legal_moves(self, dice):
@@ -348,4 +360,3 @@ class Board(object):
             n = random.randint(0, len(moves)-1)
             #We play another move
             self.play(moves[n])
-        pass

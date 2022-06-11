@@ -12,7 +12,7 @@ In `game.py`:
   - Rug(RED, ...) -> 2
 - `Move.valid()`
   - if-else statements because there is a hierarchy of errors. We need to satisfy a certain condition before checking the next condition. For example, need to check if the new orientation of the pawn is valid before checking if the rug is well placed, since it depends on the pawn orientation
-  - 4 nested methods for clarity
+  - 4 inner methods for clarity
 - Creation of a `Position` class 
   - Why? Because we needed to check if a position (x,y) was inside or outside the board several times. It is a simple *if* statement (`x < 0 or x > 6 or y < 0 or y > 6`). We write it as a method of the class.
   - Changes in `Pawn` class. From `self.x`, `self.y` to `self.position` and then we can refer to the coordinates with`self.position.x` and `self.position.y`. Modifications in all methods accordingly.
@@ -23,5 +23,16 @@ In `game.py`:
 __TODO__
 
 - [x] Test `Pawn.move()` --> 11/06/22
-- [ ] Test `Move.valid()`
+- [x] Test `Move.valid()` --> 11/06/22
 - [ ] How to deal with the dice?
+
+## 11/06/22
+
+- Function `adjacent_coord()`. For coordinates on the board's frontiers, only returns coordinates that are not out of the board. 
+  - So we don't need to check if a rug will be out of board in `Move.valid()`
+
+
+# Terms
+
+- "Coordinates" = tuple of int (x,y)
+- "Position" = object of class `Position` with attributes `x` and `y`
