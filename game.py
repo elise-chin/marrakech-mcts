@@ -133,22 +133,13 @@ class Pawn(object):
         self.orientation = orientation
 
     def legal_orientations(self):
-        #The pawn cannot make a u turn
+        # The pawn cannot make a u turn
         orientations = [NORTH, SOUTH, EAST, WEST]
         orientations.remove(u_turn[self.orientation])
         return orientations
 
-    def reorient(self, new_orientation):
-        #What's the difference between this and set_orientation ?
-        if new_orientation in self.legal_orientations():
-            self.orientation = new_orientation
-            #What if it is not legal ? I don't understand this part
-
-    def move(self, new_orientation, dice):
-        # 1. Position the pawn
-        self.reorient(new_orientation)
-
-        # 2. Move the pawn according to the new orientation and the dice's result
+    def move(self, dice):
+        # Move the pawn according to the dice's result
 
         #   Case 1: pawn does not go out from the board
         self.position.x = self.position.x + self.orientation[0] * dice 
@@ -172,11 +163,11 @@ class Pawn(object):
                 self.position.x = 0
 
             # Place the pawn after it has moved out from the board 
-            #It counts as a step
-            self.move_in_board() #modifies position and orientation
+            # It counts as a step
+            self.move_in_board() # Modifies position and orientation
             steps_left = steps_left - 1
             
-            # Move the pawn according its new orientation and the number of steps left
+            # Move the pawn according to the number of steps left
             self.position.x = self.position.x + self.orientation[0] * steps_left 
             self.position.y = self.position.y + self.orientation[1] * steps_left
 
@@ -210,8 +201,9 @@ class Pawn(object):
             self.orientation = EAST
   
 class Player(object):
-    def __init__(self, id):
+    def __init__(self, id, colors):
         self.id = id
+        self.colors = colors
         #self.rugs : liste de tapis, si deux joueurs, deux couleurs
         #or rugs1_left = 15 and rugs2_left = 15 ? 
         #Or explicit list of rugs, idk
@@ -279,7 +271,6 @@ class Move(object):
         return False
 
     def valid(self, board):
-
         if not self.is_pawn_new_orientation_valid():
             return False
         elif not self.is_rug_adjacent_to_pawn():
@@ -293,11 +284,18 @@ class Board(object):
         self.size = size
         self.board = np.zeros((size, size, 2))
         self.pawn = Pawn() # Initialize at (3,3)
-        self.turn = RED # Start with first color of first player
+        self.players = [Player(0, [RED, PINK]), Player(1, [BLUE, GREEN])]
+        self.current_player = self.players[0]
+        self.current_color = RED # Start with first color of first player
+        
         
     def __str__(self):
         #print(self.board)
         pass
+
+    def throw_dice(self):
+        dice = [1, 2, 2, 3, 3, 4]
+        return random.choice(dice)
         
     def legal_moves(self, dice):
         """
@@ -311,7 +309,7 @@ class Board(object):
             for sq1_coord in adjacent_coord((self.pawn.position.x, self.pawn.position.y)):
                 #pour chaque case autour de ces cases:
                 for sq2_coord in adjacent_coord(sq2_coord):
-                    rug = Rug(self.turn, sq1_coord, sq2_coord)
+                    rug = Rug(self.current_color, sq1_coord, sq2_coord)
                     m = Move(self.pawn, orientation, rug, dice) 
                     # pour chacun, verifier s'il est légal
                     if m.valid(self):
@@ -331,32 +329,51 @@ class Board(object):
         pass
 
     def play(self, move):
-        # 1. Position the pawn
+        # 1. Orientate the pawn
+        self.pawn.set_orientation(move.new_orientation)
 
-        # 2. Throw the dice
-        # 3. Move the pawn 
-        # 4. If the pawn arrives in an opponent's rug, pay 
-        # 5. Place a rug 
-        pass
+        # 2. Place a rug
+        self.board[self.rug.sq1_pos.x, self.rug.sq1_pos.y] = np.array([self.rug.color, self.rug.id])
+        self.board[self.rug.sq2_pos.x, self.rug.sq2_pos.y] = np.array([self.rug.color, self.rug.id])
 
     def playout(self):
         """Play a random game from the current state.
         Returns the result of the random game."""
+
         while(True):
             moves = self.legal_moves()
-            #if The game is over
+
+            # If the game is over
             if self.terminal():
-                #victory for player 2
+                # Victory for player 2
                 if self.score() < 0:
                     return -1
-                #victory for player 1
+                # Victory for player 1
                 elif self.score() > 0:
                     return 1
-                #equality
+                # Draw
                 else:
                     return 0
             
-            #Non terminal : rugs are remaining
+            # The game isn't over: rugs are remaining
+            # We play another move chosen randomly
             n = random.randint(0, len(moves)-1)
-            #We play another move
             self.play(moves[n])
+
+            # Throw the dice for the current player
+            dice_result = self.throw_dice()
+
+            # Move the pawn
+            self.pawn.move(dice_result)
+
+            # Pay opponent
+            # Pay only if the pawn is on an opponent color
+            current_square_color = self.board[self.pawn.position.x, self.pawn.position.y][0]
+            opponent_player_id = abs(self.current_player.id - 1)
+            if current_square_color not in self.current_player.colors:
+                amount = 0 #### COMMENT LE NB DE CASES ADJ DE LA COULEUR OU SE TROUVE LE PION
+                self.current_player.pay(amount, self.players[opponent_player_id])
+
+            # Change turn 
+            self.current_player = self.players[opponent_player_id]
+            self.current_color = next(color_cycle)

@@ -24,13 +24,23 @@ __TODO__
 
 - [x] Test `Pawn.move()` --> 11/06/22
 - [x] Test `Move.valid()` --> 11/06/22
-- [ ] How to deal with the dice?
+- [x] How to deal with the dice? --> 11/06/22
 
 ## 11/06/22
 
 - Function `adjacent_coord()`. For coordinates on the board's frontiers, only returns coordinates that are not out of the board. 
   - So we don't need to check if a rug will be out of board in `Move.valid()`
+- How do we deal with the stochastic event during a player's turn (the dice)?
+  - In the course's example, `play()` function corresponds to the whole turn of a player, and at the end, the turn is changed to the other player. But in our case, to deal with the stochastic event, in `play()` only the deterministic move (orientation, place the rug) and in `playout()`, we throw the dice, move the pawn and pay the opponent. 
+- Pay opponent
+  - Keep track of the current player -> Add in `Board` class, `self.players` which is a list of all the players (`Player` objects)
+  - 
 
+__TODO__
+- [ ] Board visualization
+- [ ] Compute the number of adjacents squares of the same color as the square's color on which the pawn is. For the action "pay the opponent" in `playout()`
+- [ ] `Board.score()`
+- [ ] `Board.terminal()`
 
 # Terms
 
