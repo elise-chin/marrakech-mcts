@@ -204,7 +204,7 @@ class Player(object):
     def __init__(self, id, colors):
         self.id = id
         self.colors = colors
-        self.rugs_left = 30
+        self.rugs_left = 24
         self.coins = 30
     
     def pay(self, amount, opponent_player):
@@ -217,6 +217,15 @@ class Player(object):
         else:
             self.coins -= amount
             opponent_player.coins += amount
+
+    def score(self, board):
+        # Sum of coins and the number of squares of the player's colors
+        s = self.coins
+        for x in range(board.size):
+            for y in range(board.size):
+                if board.board[x,y][0] in self.colors:
+                    s += 1
+        return s
   
 class Move(object):
     def __init__(self, pawn, new_orientation, rug, dice):
@@ -314,11 +323,11 @@ class Board(object):
         return moves
 
     def score(self):
-        #Sum of the coins
-        #+ number of squares of the boards of the player's colors
-        #We can think the score as points(player1) - points(player2)
-        #Such that if it's positive player 1 wins, if negative player 2 wins   
-        pass
+        # We can think the score as player1's score - player2's score
+        # Such that if it's positive, player 1 wins, if negative player 2 wins 
+        player1_score = self.players[0].score(self)
+        player2_score = self.players[1].score(self)
+        return player1_score - player2_score
 
     def terminal(self):
         for player in self.players:

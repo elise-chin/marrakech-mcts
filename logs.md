@@ -37,11 +37,13 @@ __TODO__
 - `Board.terminal()`
   - Add in `Player` an attribute `rugs_left` (initialized at 30) which we decrement each time a rug of its color is placed (in the `play()` method).
   - If all players have no more rugs left to place, then the game is over.
+- `Board.score()`
+  - Add in `Player` a `score()` function
+  - Used to compute the score of the game
 
 __TODO__
 - [ ] Board visualization
 - [ ] Compute the number of adjacents squares of the same color as the square's color on which the pawn is. For the action "pay the opponent" in `playout()`
-- [ ] `Board.score()`
 
 # Terms
 
