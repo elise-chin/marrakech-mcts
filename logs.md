@@ -44,6 +44,10 @@ __TODO__
 
 __TODO__
 - [ ] Board visualization
+- [ ] Test the whole modelisation
+
+--> Once the tests completed and we are good with the modelisation, let's start MCTS!
+Bonus: a pygame UI ;)
 
 # Terms
 
