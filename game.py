@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import colors
 from itertools import cycle, count
 import random 
 
@@ -102,8 +104,8 @@ class Rug(object):
 
     def __init__(self, color, sq1_pos, sq2_pos):
         self.color = color
-        self.sq1_pos = sq1_pos 
-        self.sq2_pos = sq2_pos
+        self.sq1_pos = Position(sq1_pos[0], sq1_pos[1]) 
+        self.sq2_pos = Position(sq2_pos[0], sq2_pos[1])
         self.id = self.increment_id()
 
     def __str__(self):
@@ -203,12 +205,12 @@ class Pawn(object):
     def get_nb_same_color_squares(self, board):
         """Compute the number of adjacents squares of the same color
         as the square's color on which the pawn is"""
-        counter = 0
+        counter = 0 #il faut initialiser à 1 car la case de départ compte !
         pawn_x, pawn_y = self.position.get_coord()
         pawn_color = board.get_color(pawn_x, pawn_y)
 
         coords_to_check = adjacent_coord((pawn_x, pawn_y))
-        visited_coords = set()
+        visited_coords = set() #Je pense qu'il faut initialiser à set((pawn_x, pawn_y))
         while coords_to_check:
             x, y = coords_to_check.pop(0)
             visited_coords.add((x, y))
@@ -232,7 +234,7 @@ class Player(object):
     
     def pay(self, amount, opponent_player):
         #I think that we should just focus on the 2 players game
-        #Is the player doesn't have enough money
+        #If the player doesn't have enough money
         if self.coins - amount < 0:
             opponent_player.coins += self.coins
             self.coins = 0
@@ -299,6 +301,7 @@ class Move(object):
         return False
 
     def valid(self, board):
+        #Check if pawn placement valid ?
         if not self.is_pawn_new_orientation_valid():
             return False
         elif not self.is_rug_adjacent_to_pawn():
@@ -340,7 +343,8 @@ class Board(object):
             #pour chaque case autour de Assam
             for sq1_coord in adjacent_coord((self.pawn.position.x, self.pawn.position.y)):
                 #pour chaque case autour de ces cases:
-                for sq2_coord in adjacent_coord(sq2_coord):
+                #print(sq1_coord)
+                for sq2_coord in adjacent_coord(sq1_coord):
                     rug = Rug(self.current_color, sq1_coord, sq2_coord)
                     m = Move(self.pawn, orientation, rug, dice) 
                     # pour chacun, verifier s'il est légal
@@ -376,7 +380,9 @@ class Board(object):
         Returns the result of the random game."""
 
         while(True):
-            moves = self.legal_moves()
+            # Throw the dice for the current player
+            dice_result = self.throw_dice()
+            moves = self.legal_moves(dice=dice_result)
 
             # If the game is over
             if self.terminal():
@@ -395,8 +401,7 @@ class Board(object):
             n = random.randint(0, len(moves)-1)
             self.play(moves[n])
 
-            # Throw the dice for the current player
-            dice_result = self.throw_dice()
+            
 
             # Move the pawn
             self.pawn.move(dice_result)
