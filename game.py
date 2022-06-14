@@ -126,11 +126,12 @@ class Position(object):
 
 class Rug(object):
 
-    def __init__(self, color, sq1_pos, sq2_pos):
+    def __init__(self, color, sq1_pos, sq2_pos, incr=False):
         self.color = color
         self.sq1_pos = Position(sq1_pos[0], sq1_pos[1]) 
         self.sq2_pos = Position(sq2_pos[0], sq2_pos[1])
-        self.id = self.increment_id()
+        if incr:
+            self.id = self.increment_id()
 
     def __str__(self):
         return f"Rug {colors_int2str[self.color]} of id {self.id} at position ({self.sq1_pos}, {self.sq2_pos})."
@@ -144,6 +145,10 @@ class Rug(object):
             return next(pink_counter)
         if self.color == GREEN:
             return next(green_counter)
+
+    def copy(self, incr=True):
+        rug_copy = Rug(self.color, self.sq1_pos.get_coord(), self.sq2_pos.get_coord(), incr)
+        return rug_copy
 
 class Pawn(object):
     def __init__(self):
@@ -401,8 +406,8 @@ class Board(object):
                     for sq1_coord in adjacent_coord((x, y)):
                         # For every square around those squares
                         for sq2_coord in adjacent_coord(sq1_coord):
-                            rug = Rug(self.current_color, sq1_coord, sq2_coord)
-                            m = Move(self.pawn, orientation, x, y, rug, dice) 
+                            rug_notreal = Rug(self.current_color, sq1_coord, sq2_coord)
+                            m = Move(self.pawn, orientation, x, y, rug_notreal, dice)
                             # Check if the move is legal
                             if m.valid(self):
                                 # If yes, add to moves
@@ -417,18 +422,21 @@ class Board(object):
         return player1_score - player2_score
 
     def terminal(self):
+        total = 0
         for player in self.players:
-            if player.rugs_left != 0:
-                return False
-        return True
+            total += player.rugs_left
+        if total == 0:
+            return True
+        return False
 
     def play(self, move):
         # 1. Orientate and move the pawn
+        rug = move.rug.copy()
         self.pawn.move(move.new_orientation, move.new_x, move.new_y)
 
         # 2. Place a rug
-        self.board[move.rug.sq1_pos.x, move.rug.sq1_pos.y] = np.array([move.rug.color, move.rug.id])
-        self.board[move.rug.sq2_pos.x, move.rug.sq2_pos.y] = np.array([move.rug.color, move.rug.id])
+        self.board[move.rug.sq1_pos.x, move.rug.sq1_pos.y] = np.array([rug.color, rug.id])
+        self.board[move.rug.sq2_pos.x, move.rug.sq2_pos.y] = np.array([rug.color, rug.id])
         self.current_player.rugs_left -= 1
 
     def playout(self):
