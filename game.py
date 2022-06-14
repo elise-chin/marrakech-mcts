@@ -1,3 +1,4 @@
+from pickle import NEWOBJ_EX
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors
@@ -140,77 +141,85 @@ class Pawn(object):
         orientations.remove(u_turn[self.orientation])
         return orientations
 
-    def move(self, dice):
-        # Move the pawn according to the dice's result
+    def legal_move(self, new_orientation, dice):
 
         #   Case 1: pawn does not go out from the board
-        self.position.x = self.position.x + self.orientation[0] * dice 
-        self.position.y = self.position.y + self.orientation[1] * dice 
+        legal_x = self.position.x + new_orientation[0] * dice
+        legal_y = self.position.y + new_orientation[1] * dice
+        legal_position = Position(legal_x, legal_y)
 
         #   Case 2: pawn goes out from the board (implementation brute-force)
-        if self.position.is_out_of_board(board_limit=6): 
+        if legal_position.is_out_of_board(board_limit=6): 
             # Count the number of steps left after moving out of the board
             # Place the pawn at the limit of the board
-            if self.orientation == NORTH:
-                steps_left = self.position.y - 6
-                self.position.y = 6
-            elif self.orientation == EAST:
-                steps_left = self.position.x - 6
-                self.position.x = 6
-            elif self.orientation == SOUTH:
-                steps_left = -self.position.y
-                self.position.y = 0
-            elif self.orientation == WEST:
-                steps_left = -self.position.x
-                self.position.x = 0
+            if new_orientation == NORTH:
+                steps_left = legal_y - 6
+                legal_y = 6
+            elif new_orientation == EAST:
+                steps_left = legal_x - 6
+                legal_x = 6
+            elif new_orientation == SOUTH:
+                steps_left = -legal_y
+                legal_y = 0
+            elif new_orientation == WEST:
+                steps_left = -legal_x
+                legal_x = 0
 
             # Place the pawn after it has moved out from the board 
             # It counts as a step
-            self.move_in_board() # Modifies position and orientation
+            new_orientation, legal_x, legal_y = self.get_move_in_board(new_orientation, legal_x, legal_y)
             steps_left = steps_left - 1
             
             # Move the pawn according to the number of steps left
-            self.position.x = self.position.x + self.orientation[0] * steps_left 
-            self.position.y = self.position.y + self.orientation[1] * steps_left
+            legal_x = legal_x + new_orientation[0] * steps_left
+            legal_y = legal_y + new_orientation[1] * steps_left
+        
+        return new_orientation, legal_x, legal_y
 
-    def move_in_board(self):
+    def get_move_in_board(self, orientation, x, y):
+        """Get the new orientation and coordinates (new_x, new_y) of the pawn after moving out of the board."""
         # Bottom left corner (0,0)
         #to read again by mathilde
-        if (self.position.x, self.position.y) == (0,0) and self.orientation == SOUTH:
-            self.orientation = EAST
-        elif (self.position.x, self.position.y) == (0,0) and self.orientation == WEST:
-            self.orientation = NORTH
+        if (x, y) == (0,0) and orientation == SOUTH:
+            orientation = EAST
+        elif (x, y) == (0,0) and orientation == WEST:
+            orientation = NORTH
         # Top right corner (6,6)
-        elif (self.position.x, self.position.y) == (6,6) and self.orientation == EAST:
-            self.orientation = SOUTH
-        elif (self.position.x, self.position.y) == (6,6) and self.orientation == NORTH:
-            self.orientation = WEST
+        elif (x, y) == (6,6) and orientation == EAST:
+            orientation = SOUTH
+        elif (x, y) == (6,6) and orientation == NORTH:
+            orientation = WEST
         # Bottom side (y = 0)
-        elif self.orientation == SOUTH:
-            self.position.x = self.position.x + 1 if self.position.x % 2 == 1 else self.position.x - 1
-            self.orientation = NORTH
+        elif orientation == SOUTH:
+            x = x + 1 if x % 2 == 1 else x - 1
+            orientation = NORTH
         # Right side (x = 6)
-        elif self.orientation == EAST:
-            self.position.y = self.position.y + 1 if self.position.y % 2 == 0 else self.position.y - 1
-            self.orientation = WEST
+        elif orientation == EAST:
+            y = y + 1 if y % 2 == 0 else y - 1
+            orientation = WEST
         # Top side (y = 6)
-        elif self.orientation == NORTH:
-            self.position.x = self.position.x + 1 if self.position.x % 2 == 0 else self.position.x - 1
-            self.orientation = SOUTH
+        elif orientation == NORTH:
+            x = x + 1 if x % 2 == 0 else x - 1
+            orientation = SOUTH
         # Left side (x = 0)
-        elif self.orientation == WEST:
-            self.position.y = self.position.y + 1 if self.position.y % 2 == 1 else self.position.y - 1
-            self.orientation = EAST
+        elif orientation == WEST:
+            y = y + 1 if y % 2 == 1 else y - 1
+            orientation = EAST
+        return orientation, x, y
+
+    def move(self, new_orientation, new_x, new_y):
+        self.set_orientation(new_orientation)
+        self.set_position(new_x, new_y)
 
     def get_nb_same_color_squares(self, board):
         """Compute the number of adjacents squares of the same color
         as the square's color on which the pawn is"""
-        counter = 0 #il faut initialiser à 1 car la case de départ compte !
+        counter = 1 # Init to 1 because the initial square counts
         pawn_x, pawn_y = self.position.get_coord()
         pawn_color = board.get_color(pawn_x, pawn_y)
 
         coords_to_check = adjacent_coord((pawn_x, pawn_y))
-        visited_coords = set() #Je pense qu'il faut initialiser à set((pawn_x, pawn_y))
+        visited_coords = set((pawn_x, pawn_y))
         while coords_to_check:
             x, y = coords_to_check.pop(0)
             visited_coords.add((x, y))
@@ -253,9 +262,11 @@ class Player(object):
         return s
   
 class Move(object):
-    def __init__(self, pawn, new_orientation, rug, dice):
+    def __init__(self, pawn, new_orientation, new_x, new_y, rug, dice):
         self.pawn = pawn
         self.new_orientation = new_orientation
+        self.new_x = new_x
+        self.new_y = new_y
         self.rug = rug
         self.dice = dice
         
@@ -272,7 +283,11 @@ class Move(object):
     def is_pawn_new_orientation_valid(self):
         # It is valid if no u-turn
         return self.new_orientation in self.pawn.legal_orientations()
-    
+
+    def is_pawn_new_position_valid(self):
+        _, legal_x, legal_y = self.pawn.legal_move(self.new_orientation, self.dice)
+        return self.new_x == legal_x and self.new_y == legal_y
+
     def is_rug_adjacent_to_pawn(self):
         # Check if adjacent to pawn and also not on the pawn's position
 
@@ -301,8 +316,9 @@ class Move(object):
         return False
 
     def valid(self, board):
-        #Check if pawn placement valid ?
         if not self.is_pawn_new_orientation_valid():
+            return False
+        elif not self.is_pawn_new_position_valid():
             return False
         elif not self.is_rug_adjacent_to_pawn():
             return False
@@ -319,7 +335,6 @@ class Board(object):
         self.current_player = self.players[0]
         self.current_color = RED # Start with first color of first player
         
-        
     def __str__(self):
         #print(self.board)
         pass
@@ -333,24 +348,30 @@ class Board(object):
         return self.board[x,y][0]
 
     def legal_moves(self, dice):
+        """Get list of legal moves among 4x49x12 possible moves.
+
+        - Orientation (4, including 3 valid)
+        - Pawn movement (49, including 1 valid according to the orientation and dice's result)
+        - Rug placement (12, including ? according to the pawn and other rugs' position)
+
         """
-        A reverifier et remodifier eventuellemnt !
-        j'ai juste fait pour voir l'idee globae mais c'est surement tres ameliorable
-        """
-        moves = []
-        # faire la liste de tous les moves possibles
+        moves = [] # List of all possible valid moves
+
+        # For every orientation
         for orientation in [NORTH, SOUTH, EAST, WEST]:
-            #pour chaque case autour de Assam
-            for sq1_coord in adjacent_coord((self.pawn.position.x, self.pawn.position.y)):
-                #pour chaque case autour de ces cases:
-                #print(sq1_coord)
-                for sq2_coord in adjacent_coord(sq1_coord):
-                    rug = Rug(self.current_color, sq1_coord, sq2_coord)
-                    m = Move(self.pawn, orientation, rug, dice) 
-                    # pour chacun, verifier s'il est légal
-                    if m.valid(self):
-                        moves.append(m)
-        #s'il est légal on l'ajoute à la liste renvoyée
+            # For every position in the board
+            for x in range(7):
+                for y in range(7):
+                    # For every square around the pawn
+                    for sq1_coord in adjacent_coord((self.pawn.position.x, self.pawn.position.y)):
+                        # For every square around those squares
+                        for sq2_coord in adjacent_coord(sq1_coord):
+                            rug = Rug(self.current_color, sq1_coord, sq2_coord)
+                            m = Move(self.pawn, orientation, x, y, rug, dice) 
+                            # Check if the move is legal
+                            if m.valid(self):
+                                # If yes, add to moves
+                                moves.append(m)
         return moves
 
     def score(self):
@@ -367,8 +388,8 @@ class Board(object):
         return True
 
     def play(self, move):
-        # 1. Orientate the pawn
-        self.pawn.set_orientation(move.new_orientation)
+        # 1. Orientate and move the pawn
+        self.pawn.move(move.new_orientation, move.new_x, move.new_y)
 
         # 2. Place a rug
         self.board[self.rug.sq1_pos.x, self.rug.sq1_pos.y] = np.array([self.rug.color, self.rug.id])
@@ -400,11 +421,6 @@ class Board(object):
             # We play another move chosen randomly
             n = random.randint(0, len(moves)-1)
             self.play(moves[n])
-
-            
-
-            # Move the pawn
-            self.pawn.move(dice_result)
 
             # Pay opponent
             # Pay only if the pawn is on an opponent color

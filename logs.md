@@ -49,6 +49,10 @@ __TODO__
 --> Once the tests completed and we are good with the modelisation, let's start MCTS!
 Bonus: a pygame UI ;)
 
+## 14/06/22
+
+- Check if a pawn placement is valid or not among the 7x7 possible placements in the board.
+
 # Terms
 
 - "Coordinates" = tuple of int (x,y)
