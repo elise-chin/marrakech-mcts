@@ -56,6 +56,28 @@ def adjacent_coord(coord):
         list of tuples: list of adjacent positions
     """
     x, y = coord
+    answer = []
+    if -1 < x - 1 < 7:
+        answer.append((x - 1, y))
+    if -1 < x + 1 < 7:
+        answer.append((x + 1, y))
+    if -1 < y - 1 < 7:
+        answer.append((x, y - 1))
+    if -1 < y + 1 < 7:
+        answer.append((x, y + 1))
+    return answer
+
+'''
+def adjacent_coord(coord):
+    """Returns all squares' coordinates (x', y') adjacent to square of coordinate `coord` (x, y)
+
+    Args:
+        coord (tuple of int): coordinate (x,y) of the square of interest
+
+    Returns:
+        list of tuples: list of adjacent positions
+    """
+    x, y = coord
     left = (x-1, y)
     right = (x+1, y)
     up = (x, y+1)
@@ -72,6 +94,7 @@ def adjacent_coord(coord):
         L.remove(up)
 
     return L
+'''
 
 ##################
 # --- CLASSES ---
@@ -127,6 +150,10 @@ class Pawn(object):
         # The pawn start at the center of the board
         self.position = Position(3, 3)
         self.orientation = NORTH
+
+    def __str__(self):
+        result = f'({self.position}, {orientations_int2str[self.orientation]})'
+        return result
     
     def set_position(self, x, y):
         self.position.x = x
@@ -271,6 +298,7 @@ class Move(object):
         self.dice = dice
         
     def __str__(self):
+        """
         de = f'The dice indicates {self.dice}.\n'
         if self.pawn.orientation == self.new_orientation:
             assam = f'The pawn stays in his orientation ({orientations_int2str[self.pawn.orientation]}).\n'
@@ -279,7 +307,10 @@ class Move(object):
         tapis = f"A rug of color {colors_int2str[self.rug.color]} (id={self.rug.id}) is placed at ({self.rug.sq1_pos}, {self.rug.sq2_pos})."
         result = de + assam + tapis
         return result
-        
+        """
+        result = f'({orientations_int2str[self.new_orientation]}, ({self.new_x, self.new_y}), {self.rug})'
+        return result 
+
     def is_pawn_new_orientation_valid(self):
         # It is valid if no u-turn
         return self.new_orientation in self.pawn.legal_orientations()
@@ -292,7 +323,7 @@ class Move(object):
         # Check if adjacent to pawn and also not on the pawn's position
 
         # List of all valid coordinates around the pawn
-        x, y = self.pawn.position.x, self.pawn.position.y
+        x, y = self.new_x, self.new_y
         init_valid_coord = adjacent_coord((x, y))
         valid_coord = init_valid_coord.copy()
         for coord in init_valid_coord:
@@ -310,12 +341,12 @@ class Move(object):
         # We need to check if the both squares are covered by the same rug (same color and same id)
         sq1_color_and_id = board.board[self.rug.sq1_pos.x, self.rug.sq1_pos.y]
         sq2_color_and_id = board.board[self.rug.sq2_pos.x, self.rug.sq2_pos.y]
-        print(sq1_color_and_id, sq2_color_and_id)
-        if (sq1_color_and_id == sq2_color_and_id).all():
+        if not np.array_equal(sq1_color_and_id, np.zeros(2)) and np.array_equal(sq1_color_and_id, sq2_color_and_id):
             return True
         return False
 
     def valid(self, board):
+        #print(self.is_pawn_new_orientation_valid(), self.is_pawn_new_position_valid(), self.is_rug_adjacent_to_pawn(), self.is_rug_covering_another_rug(board)) 
         if not self.is_pawn_new_orientation_valid():
             return False
         elif not self.is_pawn_new_position_valid():
@@ -347,6 +378,10 @@ class Board(object):
         """Get the color of the square (x,y)"""
         return self.board[x,y][0]
 
+    def get_number(self, x, y):
+        """Get the number of the square (x,y)"""
+        return self.board[x,y][1]
+
     def legal_moves(self, dice):
         """Get list of legal moves among 4x49x12 possible moves.
 
@@ -363,7 +398,7 @@ class Board(object):
             for x in range(7):
                 for y in range(7):
                     # For every square around the pawn
-                    for sq1_coord in adjacent_coord((self.pawn.position.x, self.pawn.position.y)):
+                    for sq1_coord in adjacent_coord((x, y)):
                         # For every square around those squares
                         for sq2_coord in adjacent_coord(sq1_coord):
                             rug = Rug(self.current_color, sq1_coord, sq2_coord)
@@ -392,8 +427,8 @@ class Board(object):
         self.pawn.move(move.new_orientation, move.new_x, move.new_y)
 
         # 2. Place a rug
-        self.board[self.rug.sq1_pos.x, self.rug.sq1_pos.y] = np.array([self.rug.color, self.rug.id])
-        self.board[self.rug.sq2_pos.x, self.rug.sq2_pos.y] = np.array([self.rug.color, self.rug.id])
+        self.board[move.rug.sq1_pos.x, move.rug.sq1_pos.y] = np.array([move.rug.color, move.rug.id])
+        self.board[move.rug.sq2_pos.x, move.rug.sq2_pos.y] = np.array([move.rug.color, move.rug.id])
         self.current_player.rugs_left -= 1
 
     def playout(self):
