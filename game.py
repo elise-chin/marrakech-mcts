@@ -67,6 +67,22 @@ def adjacent_coord(coord):
         answer.append((x, y + 1))
     return answer
 
+def next_color(color):
+  next = ''
+  if color == RED:
+    next = BLUE
+  elif color == BLUE:
+    next = PINK
+  elif color == PINK:
+    next = GREEN
+  elif color == GREEN:
+    next = RED
+  
+  if next == '':
+    print('The color is incorrect')
+
+  return next
+  
 '''
 def adjacent_coord(coord):
     """Returns all squares' coordinates (x', y') adjacent to square of coordinate `coord` (x, y)
@@ -132,6 +148,8 @@ class Rug(object):
         self.sq2_pos = Position(sq2_pos[0], sq2_pos[1])
         if incr:
             self.id = self.increment_id()
+        else:
+            self.id = 0
 
     def __str__(self):
         return f"Rug {colors_int2str[self.color]} of id {self.id} at position ({self.sq1_pos}, {self.sq2_pos})."
@@ -146,7 +164,7 @@ class Rug(object):
         if self.color == GREEN:
             return next(green_counter)
 
-    def copy(self, incr=True):
+    def create_real(self, incr=True):
         rug_copy = Rug(self.color, self.sq1_pos.get_coord(), self.sq2_pos.get_coord(), incr)
         return rug_copy
 
@@ -303,18 +321,18 @@ class Move(object):
         self.dice = dice
         
     def __str__(self):
-        """
-        de = f'The dice indicates {self.dice}.\n'
+        
         if self.pawn.orientation == self.new_orientation:
             assam = f'The pawn stays in his orientation ({orientations_int2str[self.pawn.orientation]}).\n'
         else:
             assam = f'The pawn is reoriented from {orientations_int2str[self.pawn.orientation]} to {orientations_int2str[self.new_orientation]}.\n'
+        assam_move = f'Assam is moving from {self.pawn.position.__str__()} to ({self.new_x},{self.new_y}).\n'
         tapis = f"A rug of color {colors_int2str[self.rug.color]} (id={self.rug.id}) is placed at ({self.rug.sq1_pos}, {self.rug.sq2_pos})."
-        result = de + assam + tapis
+        result = assam + assam_move + tapis
         return result
-        """
-        result = f'({orientations_int2str[self.new_orientation]}, ({self.new_x, self.new_y}), {self.rug})'
-        return result 
+        
+        #result = f'({orientations_int2str[self.new_orientation]}, ({self.new_x, self.new_y}), {self.rug})'
+        #return result 
 
     def is_pawn_new_orientation_valid(self):
         # It is valid if no u-turn
@@ -363,13 +381,17 @@ class Move(object):
         return True
 
 class Board(object):
-    def __init__(self, size=7):
+    def __init__(self, size=7, verbose=False):
         self.size = size
         self.board = np.zeros((size, size, 2))
         self.pawn = Pawn() # Initialize at (3,3)
         self.players = [Player(0, [RED, PINK]), Player(1, [BLUE, GREEN])]
         self.current_player = self.players[0]
         self.current_color = RED # Start with first color of first player
+        self.verbose=verbose
+        self.nb_turns = 1
+
+        self.cycle_players = cycle(players)
         
     def __str__(self):
         #print(self.board)
@@ -430,14 +452,46 @@ class Board(object):
         return False
 
     def play(self, move):
+        
+        move.rug = move.rug.create_real()
+        if self.verbose:
+          print(move.__str__())
+
         # 1. Orientate and move the pawn
-        rug = move.rug.copy()
         self.pawn.move(move.new_orientation, move.new_x, move.new_y)
 
         # 2. Place a rug
-        self.board[move.rug.sq1_pos.x, move.rug.sq1_pos.y] = np.array([rug.color, rug.id])
-        self.board[move.rug.sq2_pos.x, move.rug.sq2_pos.y] = np.array([rug.color, rug.id])
+        self.board[move.rug.sq1_pos.x, move.rug.sq1_pos.y] = np.array([move.rug.color, move.rug.id])
+        self.board[move.rug.sq2_pos.x, move.rug.sq2_pos.y] = np.array([move.rug.color, move.rug.id])
         self.current_player.rugs_left -= 1
+
+        # 3. Pay opponent
+        # Pay only if the pawn is on an opponent color
+        current_square_color = self.get_color(self.pawn.position.x, self.pawn.position.y)
+        opponent_player_id = abs(self.current_player.id - 1)
+        if self.verbose:
+            if current_square_color:
+                print(f'The players ends on a {colors_int2str[current_square_color]} rug.')
+            else:
+                print(f'The player ends on an empty case.')
+        #very important : the player only have to pay if he is on an opponent rug ! not if it is an empty case !
+        if current_square_color:
+            if current_square_color not in self.current_player.colors:
+                amount = self.pawn.get_nb_same_color_squares(self)
+                if self.verbose:
+                    print(f'This rug belongs to player {self.players[opponent_player_id].id}.')
+                    print(f'The current player has to give him {amount} coins.')
+                self.current_player.pay(amount, self.players[opponent_player_id])
+            else:
+                if self.verbose:
+                    print("The rug is his so he doesn't have to pay.")
+        if self.verbose:
+            print(f'Player {self.players[0].id} has {self.players[0].coins} coins. Player {self.players[1].id} has {self.players[1].coins}.')
+          
+        # Change turn
+        self.current_player = self.players[opponent_player_id]
+        #self.current_payer = next(self.cycle_players)
+        self.current_color = next_color(self.current_color)
 
     def playout(self):
         """Play a random game from the current state.
@@ -446,33 +500,35 @@ class Board(object):
         while(True):
             # Throw the dice for the current player
             dice_result = self.throw_dice()
+            #We get all the legal moves for this dice result
             moves = self.legal_moves(dice=dice_result)
 
             # If the game is over
             if self.terminal():
-                # Victory for player 2
-                if self.score() < 0:
-                    return -1
                 # Victory for player 1
+                if self.score() < 0:
+                    if self.verbose:
+                        print("Player 1 wins !!!")
+                    return -1
+                # Victory for player 0
                 elif self.score() > 0:
+                    if self.verbose:
+                        print("Player 0 wins !!!")
                     return 1
                 # Draw
                 else:
+                    if self.verbose:
+                        print("Draw...")
                     return 0
             
+            if self.verbose:
+              print(f'{self.nb_turns}.')
+              print(f'Player {self.current_player.id} throws the dice. The result is {dice_result}.')
+
             # The game isn't over: rugs are remaining
             # We play another move chosen randomly
             n = random.randint(0, len(moves)-1)
             self.play(moves[n])
-
-            # Pay opponent
-            # Pay only if the pawn is on an opponent color
-            current_square_color = self.get_color(self.pawn.position.x, self.pawn.position.y)
-            opponent_player_id = abs(self.current_player.id - 1)
-            if current_square_color not in self.current_player.colors:
-                amount = self.pawn.get_nb_same_color_squares()
-                self.current_player.pay(amount, self.players[opponent_player_id])
-
-            # Change turn 
-            self.current_player = self.players[opponent_player_id]
-            self.current_color = next(color_cycle)
+            self.nb_turns+=1
+            if self.verbose:
+                print('\n')
